@@ -1,4 +1,4 @@
-version: "3.7"
+version: "3.9"
 
 services:
 
@@ -26,21 +26,11 @@ services:
       timeout: 5s
       retries: 5
 
-  migration:
-    image: uzman
-    command: python manage.py migrate --noinput
-    volumes:
-      - .:/code
-    depends_on:
-      db:
-        condition: service_healthy
-
   web:
     build: .
-    image: uzman
     tty: true
     command: >
-      bash -c "python manage.py runserver 0.0.0.0:8000"
+      bash -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
     volumes:
@@ -52,8 +42,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      migration:
-        condition: service_completed_successfully
 
   celery:
     build: .
