@@ -8,7 +8,6 @@ from users.models import User
 # Create your tests here.
 class UserModelTestCase(APITestCase):
     def setUp(self) -> None:
-
         # Получение маршрутов
         self.authentication_url = '/user/token/'
 
@@ -70,9 +69,12 @@ class UserRegistrationTestCase(APITestCase):
     """Тестирование регистрации / активации и авторизации пользователей."""
 
     def setUp(self) -> None:
+        # Получение маршрутов
         self.register_url = '/auth/users/'
         self.activation_url = '/auth/users/activation/'
         self.authentication_url = '/user/token/'
+
+        # Данные для регистрации пользователя
         self.user_data = {
             'email': 'test@test.com',
             'password': 'ChooseBestPassword'
@@ -86,11 +88,13 @@ class UserRegistrationTestCase(APITestCase):
             self.register_url
         )
 
+        # Проверка статус кода
         self.assertEqual(
             response.status_code,
             status.HTTP_400_BAD_REQUEST
         )
 
+        # Проверка содержимого ответа
         self.assertEqual(
             response.json(),
             {
@@ -112,11 +116,13 @@ class UserRegistrationTestCase(APITestCase):
             format='json'
         )
 
+        # Проверка статус кода
         self.assertEqual(
             response_registration.status_code,
             status.HTTP_201_CREATED
         )
 
+        # Проверка количества пользователей после регистрации
         self.assertEqual(
             User.objects.count(),
             1
@@ -145,11 +151,13 @@ class UserRegistrationTestCase(APITestCase):
             format='json'
         )
 
+        # Проверка статус кода
         self.assertEqual(
             response_activation.status_code,
             status.HTTP_204_NO_CONTENT
         )
 
+        # Проверка на активность пользователя
         user_after = User.objects.get(email='test@test.com')
         self.assertEqual(
             user_after.is_active,
@@ -163,6 +171,7 @@ class UserRegistrationTestCase(APITestCase):
             format='json'
         )
 
+        # Проверка статус кода
         self.assertEqual(
             response_authentication.status_code,
             status.HTTP_200_OK
@@ -187,24 +196,27 @@ class UserActionTestCase(UserModelTestCase):
         user_1 = User.objects.get(email='test@test.com')
 
         # Получение маршрутов
-        self.user_detail_url = f'/user/{user_1.pk}/'
-        self.user_update_url = f'/user/update/{user_1.pk}/'
-        self.user_delete_url = f'/user/delete/{user_1.pk}/'
+        self.user_detail_url = f'/auth/users/{user_1.pk}/'
+        self.user_update_url = f'/auth/users/{user_1.pk}/'
+        self.user_delete_url = f'/auth/users/{user_1.pk}/'
 
     def test_user_get_detail(self):
         """Информацию о пользователе могут получить только авторизованные пользователи."""
 
+        # GET-запрос на детальную информацию о пользователе
         response = self.client.get(
             self.user_detail_url,
             headers=self.headers_user_1,
             format='json'
         )
 
+        # Проверка статус кода
         self.assertEqual(
             response.status_code,
             status.HTTP_200_OK
         )
 
+        # Проверка email пользователя
         self.assertEqual(
             response.json().get('email'),
             'test@test.com'
@@ -213,17 +225,20 @@ class UserActionTestCase(UserModelTestCase):
     def test_user_cannot_get_detail_without_authentication(self):
         """Анонимные пользователи не имеют доступа к информации веб-ресурса."""
 
+        # GET-запрос на детальную информацию о пользователе
         response = self.client.get(
             self.user_detail_url,
             headers=None,
             format='json'
         )
 
+        # Проверка статус кода
         self.assertEqual(
             response.status_code,
             status.HTTP_401_UNAUTHORIZED
         )
 
+        # Проверка содержимого ответа
         self.assertEqual(
             response.json(),
             {'detail': 'Учетные данные не были предоставлены.'}
@@ -232,29 +247,35 @@ class UserActionTestCase(UserModelTestCase):
     def test_user_get_limited_info_about_another_user(self):
         """Пользователи не имеют доступа к информации других пользователей."""
 
+        # GET-запрос на детальную информацию о пользователе
         response = self.client.get(
             self.user_detail_url,
             headers=self.headers_user_2,
             format='json'
         )
 
+        # Проверка статус кода
         self.assertEqual(
             response.status_code,
-            status.HTTP_403_FORBIDDEN
+            status.HTTP_404_NOT_FOUND
         )
 
+        # Проверка содержимого ответа
         self.assertEqual(
             response.json(),
-            {'detail': 'У вас недостаточно прав для выполнения данного действия.'}
+            {'detail': 'Страница не найдена.'}
         )
 
     def test_user_update_profile_without_authentication(self):
         """Анонимные пользователи не могут изменять информацию о зарегистрированных пользователях."""
 
+        # Данные для обновления
         updated_data = {
             'first_name': 'Dima',
             'last_name': 'Dmitriev'
         }
+
+        # PATCH-запрос на изменение данных о пользователе
         response = self.client.patch(
             self.user_update_url,
             data=updated_data,
@@ -262,23 +283,28 @@ class UserActionTestCase(UserModelTestCase):
             format='json'
         )
 
+        # Проверка статус кода
         self.assertEqual(
             response.status_code,
             status.HTTP_401_UNAUTHORIZED
         )
 
+        # Проверка содержимого ответа
         self.assertEqual(
             response.json(),
             {'detail': 'Учетные данные не были предоставлены.'}
         )
 
     def test_user_update_profile_with_authentication(self):
-        """Тестирование изменения данных о пользователе после авторизации."""
+        """Авторизованные пользователи могут изменять информацию о себе."""
 
+        # Данные для обновления
         updated_data = {
             'first_name': 'Dima',
             'last_name': 'Dmitriev'
         }
+
+        # PATCH-запрос на изменение данных о пользователе
         response = self.client.patch(
             self.user_update_url,
             data=updated_data,
@@ -286,10 +312,13 @@ class UserActionTestCase(UserModelTestCase):
             format='json'
         )
 
+        # Проверка статус кода
         self.assertEqual(
             response.status_code,
             status.HTTP_200_OK
         )
+
+        # Проверка содержимого ответа
         user_data = {
             'first_name': response.json().get('first_name'),
             'last_name': response.json().get('last_name')
@@ -302,10 +331,13 @@ class UserActionTestCase(UserModelTestCase):
     def test_user_cannot_update_profile_about_another_user(self):
         """Пользователи не могут изменять данные других пользователей."""
 
+        # Данные для обновления
         updated_data = {
             'first_name': 'Dima',
             'last_name': 'Dmitriev'
         }
+
+        # PATCH-запрос на изменение данных о пользователе
         response = self.client.patch(
             self.user_update_url,
             data=updated_data,
@@ -313,30 +345,81 @@ class UserActionTestCase(UserModelTestCase):
             format='json'
         )
 
+        # Проверка статус кода
         self.assertEqual(
             response.status_code,
-            status.HTTP_403_FORBIDDEN
+            status.HTTP_404_NOT_FOUND
         )
 
+        # Проверка содержимого ответа
         self.assertEqual(
             response.json(),
-            {'detail': 'У вас недостаточно прав для выполнения данного действия.'}
+            {'detail': 'Страница не найдена.'}
         )
 
-    def test_user_cannot_delete_account(self):
-        """Обычные пользователи не могут удалять свои аккаунты."""
+    def test_user_can_delete_their_account(self):
+        """Обычные пользователи могут удалять свои аккаунты."""
 
+        password = {
+            'current_password': 'ChooseBestPassword'
+        }
+
+        # Количество пользователей до удаления
+        self.assertTrue(
+            User.objects.count() == 2
+        )
+
+        # DELETE-запрос на удаление пользователя
         response = self.client.delete(
             self.user_delete_url,
+            data=password,
             headers=self.headers_user_1,
             format='json'
         )
 
+        # Количество пользователей после удаления
+        self.assertTrue(
+            User.objects.count() == 1
+        )
+
+        # Проверка статус кода
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_204_NO_CONTENT
+        )
+
+    def test_user_cannot_delete_account_not_owner(self):
+        """Обычные пользователи не могут удалять чужие аккаунты."""
+
+        password = {
+            'current_password': 'ChooseBestPassword'
+        }
+
+        # Количество пользователей до удаления
+        self.assertTrue(
+            User.objects.count() == 2
+        )
+
+        # DELETE-запрос на удаление пользователя
+        response = self.client.delete(
+            self.user_delete_url,
+            data=password,
+            headers=self.headers_user_2,
+            format='json'
+        )
+
+        # Количество пользователей после удаления
+        self.assertTrue(
+            User.objects.count() == 2
+        )
+
+        # Проверка статус кода
         self.assertEqual(
             response.status_code,
             status.HTTP_403_FORBIDDEN
         )
 
+        # Проверка содержимого ответа
         self.assertEqual(
             response.json(),
             {'detail': 'У вас недостаточно прав для выполнения данного действия.'}
