@@ -195,6 +195,10 @@ DJOSER = {
         'current_user': 'users.serializers.UserSerializer',
         'user': 'users.serializers.UserSerializer'
     },
+    'EMAIL': {
+            'activation': 'users.views.ActivationEmail',
+            'password_reset': 'users.views.PasswordResetEmail',
+    },
     'TOKEN_MODEL': None,
 }
 
